@@ -65,6 +65,7 @@ def ocr(plate):
 
     return result
 
+# Função para processar o texto reconhecido
 def processamentoTexto(resulta):
 
   resultados = []
