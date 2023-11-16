@@ -1,0 +1,175 @@
+from easyocr import Reader
+import cv2
+import time
+import numpy as np
+from plyer import notification
+
+# Lista de idiomas suportados pelo Tesseract
+lista_idiomas = 'en,pt,es'
+# Separa os idiomas da lista em uma lista de strings
+idiomas = lista_idiomas.split(',')
+# Ativa a GPU (Nvidia)
+gpu = True
+# Inicializa o leitor de texto
+reader = Reader(idiomas, gpu)
+# Imprime os idiomas suportados
+print(idiomas)
+
+# Lista de placas de carro procuradas
+procurados = ['EAA1381','17559400','KRW6841','KYO8416','FIX0647','EQF8545','BRA2E19','FOO0646','DZX1949','CON6088','ECH5824','RHC9A26']
+# Lista de placas reconhecidas
+resultadoPlacas = []
+
+# Função para realizar o reconhecimento óptico de caracteres (OCR) em uma imagem de placa de carro
+def ocr(plate):
+  # Converte a imagem para tons de cinza
+  gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
+  # Realiza o OCR da imagem
+  resultados = reader.readtext(gray,
+                              allowlist = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 
+                              decoder='beamsearch',
+                              beamWidth=10,
+                              mag_ratio=5,text_threshold=0.90,
+                              min_size=5
+                              )
+
+  tamnhodoresultado = len(resultados)
+  img = plate.copy()
+  time.sleep(0.1)
+  cv2.imshow('DEMO', plate)
+  cv2.waitKey(1)
+  
+  # Verifica se o OCR retornou algum resultado  
+  if resultados == []:
+    return
+  
+  else:
+    result = []
+    for r in range(tamnhodoresultado):
+      bottomtulpe = []
+      toptuple = []
+      letras = 0
+      texto = resultados[r][1]
+        
+      for i in texto:
+          letras += 1
+
+      if letras < 7:
+          pass
+      
+      else:
+        top = tuple(resultados[r][0][0])
+        bottom = tuple(resultados[r][0][2])
+            
+        result.append(texto)
+
+    return result
+
+# Função para processar o texto reconhecido
+def processamentoTexto(resulta):
+
+  resultados = []
+
+  if resulta == None or resulta == []:
+    return
+  
+  for id in range(len(resulta)):
+    letras = 0
+    placa = resulta[id]
+
+    if placa == []:
+      pass
+    # Conta o numero de letras no texto
+    for letra in placa:
+      letras += 1
+    # Ver se tem 7 letras
+    if letras < 7:
+      pass
+  
+    if letras < 10:
+      maiuscula = placa.isupper()
+      if maiuscula == True:
+        placa = placa.lower().upper()
+        placa = placa.replace(" ", "")
+        placa = placa.replace('(', "")
+        placa = placa.replace(')', "")
+        placa = placa.replace(']', "")
+        placa = placa.replace('[', "")
+        placa = placa.replace('|', "")
+        placa = placa.replace(',', "")
+        placa = placa.replace('*', "")
+        placa = placa.replace('!', "")
+        placa = placa.replace('-', "")
+        placa = placa.replace('/', "")
+        placa = placa.replace('}', "")
+        placa = placa.replace('{', "")
+        placa = placa.replace('>', "")
+        placa = placa.replace('<', "")
+        placa = placa.replace("'", "")
+        resultados.append(placa)
+      
+      else:
+        placa = placa.upper()
+        placa = placa.replace(" ", "")
+        placa = placa.replace('(', "")
+        placa = placa.replace(')', "")
+        placa = placa.replace(']', "")
+        placa = placa.replace('[', "")
+        placa = placa.replace('|', "")
+        placa = placa.replace(',', "")
+        placa = placa.replace('*', "")
+        placa = placa.replace('!', "")
+        placa = placa.replace('-', "")
+        placa = placa.replace('/', "")
+        placa = placa.replace('}', "")
+        placa = placa.replace('{', "")
+        placa = placa.replace('>', "")
+        placa = placa.replace('<', "")
+        placa = placa.replace("'", "")
+        resultados.append(placa)
+    
+  return resultados
+
+# Loop principal
+captura = cv2.VideoCapture(0)
+cont = 0
+
+while True:
+    cont += 1   
+    _, frame = captura.read()  
+    #frame = frame[500:720, 0:1280]
+    
+    if cont == 30:
+        cont = 0
+        resultado = ocr(frame)
+        
+        if resultado == []:
+          pass
+        
+        else:
+            ResultadoDoprocessamento = processamentoTexto(resultado)
+            if ResultadoDoprocessamento == [] or ResultadoDoprocessamento == None:
+              pass
+            else:
+              for i in range(len(ResultadoDoprocessamento)):
+                letras = 0
+                palavra = ResultadoDoprocessamento[i]
+                possuiNumeros = any(chr.isdigit() for chr in palavra)
+                
+                if possuiNumeros == True:
+                  for l in palavra:
+                    letras += 1
+
+                  if letras < 7:
+                    pass
+                  
+                  else:
+                    print(palavra)
+                    if palavra in procurados:
+                        # Gera notificação
+                        notification.notify(
+                            title='Placa Encontrada',
+                            message=f'VEÍCULO COM RESTRIÇÃO DE ROUBO/FURTO: {palavra}',
+                            app_icon=None,
+                            timeout=10
+                        )
