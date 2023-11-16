@@ -1,29 +1,37 @@
-#Importando as bibliotecas necessárias
+# Importando as bibliotecas necessárias
 from easyocr import Reader
 import cv2
 import time
 import numpy as np
+from plyer import notification
 
 # Lista de idiomas suportados pelo Tesseract
 lista_idiomas = 'en,pt,es'
+
 # Separa os idiomas da lista em uma lista de strings
 idiomas = lista_idiomas.split(',')
+
 # Ativa a GPU (Nvidia)
 gpu = True
+
 # Inicializa o leitor de texto
 reader = Reader(idiomas, gpu)
+
 # Imprime os idiomas suportados
 print(idiomas)
 
 # Lista de placas de carro procuradas
 procurados = ['EAA1381','17559400','KRW6841','KYO8416','FIX0647','EQF8545','BRA2E19','FOO0646','DZX1949','CON6088','ECH5824','RHC9A26']
+
 # Lista de placas reconhecidas
 resultadoPlacas = []
 
 # Função para realizar o reconhecimento óptico de caracteres (OCR) em uma imagem de placa de carro
 def ocr(plate):
-  # Converte a imagem para tons de cinza
+
+# Converte a imagem para tons de cinza
   gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
+
 # Realiza o OCR da imagem
   resultados = reader.readtext(gray,
                               allowlist = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 
@@ -39,7 +47,7 @@ def ocr(plate):
   cv2.imshow('DEMO', plate)
   cv2.waitKey(1)
   
-  # Verifica se o OCR retornou algum resultado  
+# Verifica se o OCR retornou algum resultado  
   if resultados == []:
     return
   
@@ -82,7 +90,7 @@ def processamentoTexto(resulta):
 # Conta o numero de letras no texto
     for letra in placa:
       letras += 1
-    #Ver se tem 7 letras
+# Verifica se tem 7 letras
     if letras < 7:
       pass
   
@@ -136,8 +144,7 @@ cont = 0
 while True:
     cont += 1   
     _,frame = captura.read()  
-    #frame = frame[500:720, 0:1280]
-    
+        
     if cont == 30:
         cont = 0
         resultado = ocr(frame)
@@ -164,3 +171,11 @@ while True:
                   
                   else:
                     print(palavra)
+                    if palavra in procurados:
+                        # Gera notificação
+                        notification.notify(
+                            title='Placa Encontrada',
+                            message=f'VEÍCULO COM RESTRIÇÃO DE ROUBO/FURTO: {palavra}',
+                            app_icon=None,
+                            timeout=10
+                        )
