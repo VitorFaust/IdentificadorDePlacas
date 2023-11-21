@@ -1,0 +1,50 @@
+from easyocr import Reader
+import cv2
+from plyer import notification
+
+lista_idiomas = 'en,pt,es'
+idiomas = lista_idiomas.split(',')
+gpu = True
+reader = Reader(idiomas, gpu)
+procurados = ['EAA1381', '17559400', 'KRW6841', 'KYO8416', 'FIX0647', 'EQF8545', 'BRA2E19', 'FOO0646', 'DZX1949', 'CON6088', 'ECH5824', 'RHC9A26']
+
+def ocr(plate):
+    gray = cv2.cvtColor(plate, cv2.COLOR_BGR2GRAY)
+    resultados = reader.readtext(gray, allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', decoder='beamsearch', beamWidth=10, mag_ratio=5, text_threshold=0.90, min_size=5)
+
+    if resultados:
+        result = [resultados[r][1] for r in range(len(resultados)) if len(resultados[r][1]) >= 7]
+        return result
+
+def processamento_texto(resulta):
+    resultados = [placa.lower().upper().replace(" ", "").replace('(', "").replace(')', "").replace(']', "").replace('[', "").replace('|', "").replace(',', "").replace('*', "").replace('!', "").replace('-', "").replace('/', "").replace('}', "").replace('{', "").replace('>', "").replace('<', "").replace("'", "").replace(".", "").replace(":", "") for placa in resulta if len(placa) >= 7]
+    return resultados
+
+captura = cv2.VideoCapture(0)
+cont = 0
+
+while True:
+    cont += 1
+    _, frame = captura.read()
+
+    if cont == 30:
+        cont = 0
+        resultado = ocr(frame)
+
+        if resultado:
+            resultado_processado = processamento_texto(resultado)
+            if resultado_processado:
+                for palavra in resultado_processado:
+                    possui_numeros = any(char.isdigit() for char in palavra)
+                    
+                    if possui_numeros and len(palavra) >= 7 and palavra in procurados:
+                        # Gera notificação
+                        notification.notify(
+                            title='Placa Encontrada',
+                            message=f'VEÍCULO COM RESTRIÇÃO DE ROUBO/FURTO: {palavra}',
+                            app_icon=None,
+                            timeout=10
+                        )
+
+    cv2.imshow('DEMO', frame)
+    cv2.waitKey(1)
